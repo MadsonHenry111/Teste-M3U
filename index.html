@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>IPTV Player - GitHub Version</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="center">
+
+<div class="upload-box">
+    <h1>IPTV Player</h1>
+    <p>Selecione sua lista .m3u</p>
+
+    <input type="file" id="fileInput" accept=".m3u">
+
+    <button onclick="carregarLista()">Carregar Lista</button>
+</div>
+
+<script>
+function carregarLista() {
+    const file = document.getElementById("fileInput").files[0];
+    if (!file) return alert("Selecione um arquivo .m3u");
+
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+        localStorage.setItem("m3uData", e.target.result);
+        window.location.href = "player.html";
+    };
+
+    reader.readAsText(file);
+}
+</script>
+
+</body>
+</html>
