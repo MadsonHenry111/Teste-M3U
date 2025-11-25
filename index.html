@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Player IPTV - M3U / Xtream Codes</title>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #111;
+        color: #fff;
+        margin: 0;
+        padding: 20px;
+        text-align: center;
+    }
+
+    input, button {
+        padding: 10px;
+        margin: 5px;
+        width: 260px;
+        border-radius: 5px;
+        border: none;
+        font-size: 15px;
+    }
+
+    button {
+        background: #0a84ff;
+        color: white;
+        cursor: pointer;
+    }
+
+    video {
+        width: 90%;
+        max-width: 600px;
+        background: #000;
+        margin-top: 20px;
+        border: 2px solid #444;
+        border-radius: 10px;
+    }
+
+    .box {
+        background: #222;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 10px;
+    }
+</style>
+</head>
+<body>
+
+<h1>Player IPTV — M3U & Xtream Codes</h1>
+
+<!-- M3U -->
+<div class="box">
+    <h2>Carregar M3U</h2>
+    <input id="m3u_url" type="text" placeholder="URL da lista M3U/M3U8">
+    <button onclick="carregarM3U()">Carregar M3U</button>
+    <select id="listaCanais" onchange="tocarCanal()">
+        <option value="">Selecione um canal...</option>
+    </select>
+</div>
+
+<!-- Xtream -->
+<div class="box">
+    <h2>Xtream Codes</h2>
+    <input id="xtream_url" type="text" placeholder="URL do servidor (ex: http://ip:porta)">
+    <input id="xtream_user" type="text" placeholder="Usuário">
+    <input id="xtream_pass" type="password" placeholder="Senha">
+    <button onclick="carregarXtream()">Carregar canais</button>
+</div>
+
+<video id="video" controls></video>
+
+<script>
+let canais = [];
+
+// Carrega M3U
+async function carregarM3U() {
+    const url = document.getElementById("m3u_url").value;
+
+    try {
+        const response = await fetch(url);
+        const text = await response.text();
+        canais = parseM3U(text);
+
+        preencherLista();
+    } catch (e) {
+        alert("Erro ao carregar M3U (talvez CORS bloqueado).");
+    }
+}
+
+function parseM3U(text) {
+    const lines = text.split("\n");
+    const lista = [];
+    let currentName = "";
+
+    for (let line of lines) {
+        line = line.trim();
+        if (line.startsWith("#EXTINF")) {
+            const name = line.split(",")[1];
+            currentName = name;
+        } else if (line.startsWith("http")) {
+            lista.push({ name: currentName, url: line });
+        }
+    }
+
+    return lista;
+}
+
+function preencherLista() {
+    const select = document.getElementById("listaCanais");
+    select.innerHTML = '<option value="">Selecione um canal...</option>';
+
+    canais.forEach((c, i) => {
+        const op = document.createElement("option");
+        op.value = i;
+        op.textContent = c.name;
+        select.appendChild(op);
+    });
+}
+
+function tocarCanal() {
+    const video = document.getElementById("video");
+    const index = document.getElementById("listaCanais").value;
+
+    if (index === "") return;
+
+    const url = canais[index].url;
+
+    if (Hls.isSupported()) {
+        const hls = new Hls();
+        hls.loadSource(url);
+        hls.attachMedia(video);
+    } else {
+        video.src = url;
+    }
+}
+
+// Xtream Codes
+async function carregarXtream() {
+    const base = document.getElementById("xtream_url").value;
+    const user = document.getElementById("xtream_user").value;
+    const pass = document.getElementById("xtream_pass").value;
+
+    const api = `${base}/player_api.php?username=${user}&password=${pass}`;
+
+    try {
+        const response = await fetch(api);
+        const data = await response.json();
+
+        canais = data.live_streams.map(c => ({
+            name: c.name,
+            url: `${base}/${user}/${pass}/${c.stream_id}.m3u8`
+        }));
+
+        preencherLista();
+    } catch (e) {
+        alert("Erro ao carregar Xtream (CORS pode estar bloqueado).");
+    }
+}
+</script>
+
+</body>
+</html>
